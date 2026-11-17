@@ -302,11 +302,6 @@
 				recetas: Array.isArray(data.recetas) ? data.recetas : [],
 				fichas: Array.isArray(data.fichas) ? data.fichas : []
 			};
-
-			if (db.recetas.length > 0) {
-				recetaSeleccionada = db.recetas[0];
-				porcionesDeseadas = obtenerRendimientoBase(db.recetas[0]);
-			}
 		}
 		cargando = false;
 	}
@@ -430,13 +425,29 @@
 	<!-- Encabezado corporativo -->
 	<header class="border-b border-slate-200 bg-slate-900 text-white shadow-sm">
 		<div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-			<div>
+			<button
+				type="button"
+				on:click={() => {
+					recetaSeleccionada = null;
+					modoCreacion = false;
+				}}
+				class="text-left focus:outline-none"
+			>
 				<h1 class="text-xl font-semibold tracking-tight">Sistema de Recetario y Costos</h1>
 				<p class="text-xs text-slate-300">Fichas técnicas y cálculo dinámico de porciones</p>
+			</button>
+			<div class="flex items-center gap-3">
+				<span class="hidden rounded-md bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 sm:inline-block">
+					{db.recetas.length} {db.recetas.length === 1 ? 'receta disponible' : 'recetas disponibles'}
+				</span>
+				<button
+					type="button"
+					on:click={activarModoCreacion}
+					class="rounded-md bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-900 shadow-2xs transition hover:bg-slate-100"
+				>
+					+ Nueva Receta
+				</button>
 			</div>
-			<span class="rounded-md bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200">
-				{db.recetas.length} {db.recetas.length === 1 ? 'receta disponible' : 'recetas disponibles'}
-			</span>
 		</div>
 	</header>
 
@@ -451,456 +462,528 @@
 			<p class="mt-4 text-sm font-medium text-slate-600">Cargando datos del recetario...</p>
 		</div>
 	{:else}
-		<!-- Layout principal en grilla -->
-		<main class="mx-auto max-w-7xl">
-			<div class="grid grid-cols-1 gap-6 p-6 md:grid-cols-3">
-				<!-- Columna izquierda (1/3): Botón Nueva Receta + Lista de recetas -->
-				<aside class="space-y-4 md:col-span-1">
-					<button
-						type="button"
-						on:click={activarModoCreacion}
-						class="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold shadow-sm transition {modoCreacion
-							? 'bg-blue-950 text-white ring-2 ring-blue-900/30'
-							: 'bg-slate-900 text-white hover:bg-slate-800'}"
-					>
-						<span>+ Nueva Receta</span>
-					</button>
+		<main class="mx-auto max-w-7xl p-6">
+			{#if modoCreacion}
+				<!-- Vista de Formulario de Creación -->
+				<div class="mx-auto max-w-4xl">
+					<div class="mb-5">
+						<button
+							type="button"
+							on:click={() => {
+								modoCreacion = false;
+								recetaSeleccionada = null;
+							}}
+							class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-2xs transition hover:bg-slate-50"
+						>
+							⬅ Volver a la Biblioteca
+						</button>
+					</div>
 
-					<div class="rounded-lg border border-slate-200 bg-white shadow-sm">
-						<div class="border-b border-slate-200 bg-slate-50 px-5 py-4">
-							<h2 class="text-sm font-semibold tracking-wider text-slate-700 uppercase">
-								Recetas Disponibles
-							</h2>
+					<form
+						on:submit|preventDefault={submitReceta}
+						class="rounded-xl border border-slate-200 bg-white shadow-sm"
+					>
+						<div class="border-b border-slate-200 bg-slate-50 px-6 py-5">
+							<span class="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+								Registro de Ficha Técnica
+							</span>
+							<h2 class="mt-0.5 text-2xl font-bold text-slate-900">Crear Nueva Receta</h2>
 						</div>
 
-						{#if db.recetas.length === 0}
-							<div class="p-6 text-center text-sm text-slate-500">
-								No se encontraron recetas registradas.
-							</div>
-						{:else}
-							<div class="divide-y divide-slate-100 p-2">
-								{#each db.recetas as receta (receta.id_receta ?? obtenerNombreReceta(receta))}
-									{@const activa = !modoCreacion && recetaSeleccionada === receta}
-									<button
-										type="button"
-										on:click={() => seleccionarReceta(receta)}
-										class="flex w-full items-center justify-between rounded-md px-4 py-3 text-left text-sm font-medium transition-colors {activa
-											? 'bg-slate-900 text-white shadow-xs'
-											: 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'}"
-									>
-										<div class="min-w-0 pr-2">
-											<p class="truncate font-medium">{obtenerNombreReceta(receta)}</p>
-											{#if receta.categoria}
-												<p
-													class="mt-0.5 text-xs {activa
-														? 'text-slate-300'
-														: 'text-slate-400'}"
-												>
-													{receta.categoria}
-												</p>
-											{/if}
-										</div>
-										<span
-											class="shrink-0 rounded px-2 py-0.5 text-xs {activa
-												? 'bg-slate-800 text-slate-200'
-												: 'bg-slate-100 text-slate-500'}"
-										>
-											Base: {obtenerRendimientoBase(receta)}
-										</span>
-									</button>
-								{/each}
-							</div>
-						{/if}
-					</div>
-				</aside>
-
-				<!-- Columna derecha (2/3): Formulario de creación o Panel de la receta seleccionada -->
-				<section class="md:col-span-2">
-					{#if modoCreacion}
-						<form
-							on:submit|preventDefault={submitReceta}
-							class="rounded-lg border border-slate-200 bg-white shadow-sm"
-						>
-							<div class="border-b border-slate-200 bg-slate-50 px-6 py-5">
-								<span class="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-									Registro de Ficha Técnica
-								</span>
-								<h2 class="mt-0.5 text-2xl font-bold text-slate-900">Crear Nueva Receta</h2>
-							</div>
-
-							<div class="space-y-6 p-6">
-								<!-- Datos principales: Nombre, Categoría y Rendimiento Base -->
-								<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-									<div class="sm:col-span-1">
-										<label
-											for="nombre-receta"
-											class="block text-xs font-semibold tracking-wide text-slate-700 uppercase"
-										>
-											Nombre
-										</label>
-										<input
-											id="nombre-receta"
-											type="text"
-											required
-											placeholder="Ej. Focaccia de Romero"
-											bind:value={nuevaReceta.nombre}
-											class="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
-										/>
-									</div>
-
-									<div class="sm:col-span-1">
-										<label
-											for="categoria-receta"
-											class="block text-xs font-semibold tracking-wide text-slate-700 uppercase"
-										>
-											Categoría
-										</label>
-										<input
-											id="categoria-receta"
-											type="text"
-											placeholder="Ej. Masas, Panadería..."
-											bind:value={nuevaReceta.categoria}
-											class="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
-										/>
-									</div>
-
-									<div class="sm:col-span-1">
-										<label
-											for="rendimiento-receta"
-											class="block text-xs font-semibold tracking-wide text-slate-700 uppercase"
-										>
-											Rendimiento Base
-										</label>
-										<input
-											id="rendimiento-receta"
-											type="number"
-											min="1"
-											step="1"
-											required
-											bind:value={nuevaReceta.rendimiento}
-											class="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
-										/>
-									</div>
-								</div>
-
-								<!-- Textareas: Mise en place y Paso a paso -->
-								<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-									<div>
-										<label
-											for="mise-en-place"
-											class="block text-xs font-semibold tracking-wide text-slate-700 uppercase"
-										>
-											Mise en place
-										</label>
-										<textarea
-											id="mise-en-place"
-											rows="4"
-											placeholder="Pesar ingredientes, precalentar horno..."
-											bind:value={nuevaReceta.miseEnPlace}
-											class="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
-										></textarea>
-									</div>
-
-									<div>
-										<label
-											for="paso-a-paso"
-											class="block text-xs font-semibold tracking-wide text-slate-700 uppercase"
-										>
-											Paso a paso
-										</label>
-										<textarea
-											id="paso-a-paso"
-											rows="4"
-											placeholder="1. Mezclar secos...\n2. Amasar durante 10 min..."
-											bind:value={nuevaReceta.instrucciones}
-											class="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
-										></textarea>
-									</div>
-								</div>
-
-								<!-- Fotografía de la receta -->
-								<div>
+						<div class="space-y-6 p-6">
+							<!-- Datos principales: Nombre, Categoría y Rendimiento Base -->
+							<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+								<div class="sm:col-span-1">
 									<label
-										for="foto-receta"
+										for="nombre-receta"
 										class="block text-xs font-semibold tracking-wide text-slate-700 uppercase"
 									>
-										Fotografía del plato
+										Nombre
 									</label>
 									<input
-										id="foto-receta"
-										type="file"
-										accept="image/*"
-										on:change={manejarCambioImagen}
-										class="mt-1.5 block w-full text-sm text-slate-600 file:mr-4 file:rounded-md file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-slate-800"
+										id="nombre-receta"
+										type="text"
+										required
+										placeholder="Ej. Focaccia de Romero"
+										bind:value={nuevaReceta.nombre}
+										class="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
 									/>
-									{#if archivoImagen}
-										<p class="mt-1 text-xs text-slate-500">
-											Archivo seleccionado: <strong>{archivoImagen.name}</strong>
-										</p>
-									{/if}
 								</div>
 
-								<!-- Sección dinámica de ingredientes -->
-								<div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
-									<div class="flex items-center justify-between border-b border-slate-200 pb-3">
-										<div>
-											<h3 class="text-xs font-semibold tracking-wider text-slate-700 uppercase">
-												Ingredientes de la Receta
-											</h3>
-											<p class="text-xs text-slate-500">
-												Selecciona los insumos y define su cantidad bruta para el rendimiento base
-											</p>
-										</div>
-										<button
-											type="button"
-											on:click={agregarIngrediente}
-											class="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800"
-										>
-											+ Añadir ingrediente
-										</button>
-									</div>
-
-									{#if nuevaReceta.ingredientesSeleccionados.length === 0}
-										<p class="py-6 text-center text-xs text-slate-500">
-											Aún no has agregado ingredientes. Haz clic en "+ Añadir ingrediente".
-										</p>
-									{:else}
-										<div class="mt-3 space-y-3">
-											{#each nuevaReceta.ingredientesSeleccionados as item, idx (idx)}
-												<div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-													<div class="flex-1">
-														<select
-															bind:value={item.id_ingrediente}
-															on:change={(e) => manejarCambioSelectIngrediente(e, idx)}
-															class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
-														>
-															{#each db.ingredientes as ing (ing.id_ingrediente ?? ing.id)}
-																<option value={String(ing.id_ingrediente ?? ing.id)}>
-																	{ing.nombre} ({ing.unidad_medida}) - {ing.costo_unitario}
-																</option>
-															{/each}
-															<option value="NUEVO" class="font-semibold text-slate-900">
-																➕ Agregar nuevo ingrediente...
-															</option>
-														</select>
-													</div>
-
-													<div class="flex items-center gap-2 sm:w-48">
-														<input
-															type="number"
-															min="0"
-															step="0.001"
-															placeholder="Cantidad bruta"
-															bind:value={item.cantidad_bruta}
-															class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-right text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
-														/>
-														<button
-															type="button"
-															on:click={() => eliminarIngrediente(idx)}
-															title="Eliminar ingrediente"
-															class="rounded-md border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-														>
-															✕
-														</button>
-													</div>
-												</div>
-											{/each}
-										</div>
-									{/if}
-								</div>
-
-								<!-- Botones de acción del formulario -->
-								<div class="flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
-									<button
-										type="button"
-										on:click={() => {
-											modoCreacion = false;
-											if (db.recetas.length > 0) {
-												recetaSeleccionada = db.recetas[0];
-											}
-										}}
-										class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-									>
-										Cancelar
-									</button>
-									<button
-										type="submit"
-										disabled={guardando}
-										class="rounded-md bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-									>
-										{guardando ? 'Guardando receta...' : 'Guardar Receta'}
-									</button>
-								</div>
-							</div>
-						</form>
-					{:else if recetaSeleccionada}
-						<div class="rounded-lg border border-slate-200 bg-white shadow-sm">
-							<!-- Cabecera del panel y control de porciones -->
-							<div
-								class="flex flex-col justify-between gap-4 border-b border-slate-200 bg-slate-50 px-6 py-5 sm:flex-row sm:items-center"
-							>
-								<div>
-									<div class="flex items-center gap-2">
-										<span class="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-											Ficha Técnica · {recetaSeleccionada.id_receta}
-										</span>
-										{#if recetaSeleccionada.tiempo_preparacion}
-											<span
-												class="rounded bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700"
-											>
-												⏱ {recetaSeleccionada.tiempo_preparacion}
-											</span>
-										{/if}
-									</div>
-									<h2 class="mt-1 text-2xl font-bold text-slate-900">
-										{obtenerNombreReceta(recetaSeleccionada)}
-									</h2>
-									<p class="mt-1 text-xs text-slate-500">
-										Rendimiento base: <strong>{rendimiento_base}</strong>
-										{rendimiento_base === 1 ? 'porción' : 'porciones'} · Factor multiplicador:
-										<strong>{formatearCantidad(factorMultiplicador)}x</strong>
-									</p>
-								</div>
-
-								<div class="flex items-center gap-3 self-start sm:self-auto">
+								<div class="sm:col-span-1">
 									<label
-										for="input-porciones"
-										class="text-sm font-medium whitespace-nowrap text-slate-700"
+										for="categoria-receta"
+										class="block text-xs font-semibold tracking-wide text-slate-700 uppercase"
 									>
-										Porciones deseadas:
+										Categoría
 									</label>
 									<input
-										id="input-porciones"
+										id="categoria-receta"
+										type="text"
+										placeholder="Ej. Masas, Panadería..."
+										bind:value={nuevaReceta.categoria}
+										class="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
+									/>
+								</div>
+
+								<div class="sm:col-span-1">
+									<label
+										for="rendimiento-receta"
+										class="block text-xs font-semibold tracking-wide text-slate-700 uppercase"
+									>
+										Rendimiento Base
+									</label>
+									<input
+										id="rendimiento-receta"
 										type="number"
 										min="1"
 										step="1"
-										bind:value={porcionesDeseadas}
-										class="w-24 rounded-md border border-slate-300 bg-white px-3 py-2 text-right text-sm font-semibold text-slate-900 shadow-2xs transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
+										required
+										bind:value={nuevaReceta.rendimiento}
+										class="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
 									/>
 								</div>
 							</div>
 
-							<!-- Tabla de ingredientes, cantidades y costos -->
-							<div class="overflow-x-auto p-6">
-								<table class="w-full border-collapse text-left text-sm">
-									<thead>
-										<tr class="border-b border-slate-200 bg-slate-50 text-xs uppercase">
-											<th class="px-4 py-3 font-semibold text-slate-600">Ingrediente</th>
-											<th class="px-4 py-3 text-right font-semibold text-slate-600">Cantidad</th>
-											<th class="px-4 py-3 text-right font-semibold text-slate-600">Costo</th>
-										</tr>
-									</thead>
-									<tbody class="divide-y divide-slate-200">
-										{#if detalleIngredientes.length === 0}
-											<tr>
-												<td colspan="3" class="px-4 py-8 text-center text-slate-500">
-													No hay ingredientes asociados a esta receta en la tabla de fichas.
-												</td>
-											</tr>
-										{:else}
-											{#each detalleIngredientes as item, index (index)}
-												<tr class="transition-colors hover:bg-slate-50/80">
-													<td class="px-4 py-3.5 font-medium text-slate-800">
-														{item.nombre}
-													</td>
-													<td class="px-4 py-3.5 text-right text-slate-700 tabular-nums">
-														{formatearCantidad(item.cantidadNecesaria)}
-														{#if item.unidad}
-															<span class="ml-1 text-xs text-slate-500">{item.unidad}</span>
-														{/if}
-													</td>
-													<td class="px-4 py-3.5 text-right font-medium text-slate-800 tabular-nums">
-														{formatearMoneda(item.costo)}
-													</td>
-												</tr>
-											{/each}
-										{/if}
-									</tbody>
-									<tfoot>
-										<tr class="border-t-2 border-slate-300 bg-slate-900 text-white">
-											<td colspan="2" class="px-4 py-3.5 text-right font-semibold uppercase">
-												Total
-											</td>
-											<td class="px-4 py-3.5 text-right text-base font-bold tabular-nums">
-												{formatearMoneda(costoTotalReceta)}
-											</td>
-										</tr>
-									</tfoot>
-								</table>
-
-								<!-- Calculadora de Precio de Venta (Food Cost) -->
-								<div class="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
-									<h3 class="text-xs font-semibold tracking-wider text-slate-700 uppercase">
-										Fijación de Precio y Rentabilidad
-									</h3>
-
-									<div
-										class="mt-3 flex flex-col justify-between gap-4 sm:flex-row sm:items-center"
+							<!-- Textareas: Mise en place y Paso a paso -->
+							<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+								<div>
+									<label
+										for="mise-en-place"
+										class="block text-xs font-semibold tracking-wide text-slate-700 uppercase"
 									>
-										<!-- Input Target Food Cost -->
-										<div class="flex items-center gap-3">
-											<label
-												for="input-food-cost"
-												class="text-sm font-medium text-slate-700"
-											>
-												Target Food Cost
-											</label>
-											<div class="relative flex items-center">
-												<input
-													id="input-food-cost"
-													type="number"
-													min="1"
-													max="100"
-													step="1"
-													bind:value={porcentajeFoodCost}
-													class="w-24 rounded-md border border-slate-300 bg-white py-2 pr-7 pl-3 text-right text-sm font-semibold text-slate-900 shadow-2xs transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
-												/>
-												<span
-													class="pointer-events-none absolute right-2.5 text-sm font-semibold text-slate-500"
-												>
-													%
-												</span>
-											</div>
-										</div>
-
-										<!-- Bloque destacado Precio de Venta Sugerido y Ganancia Bruta -->
-										<div
-											class="rounded-md border border-slate-200 bg-white px-5 py-3 text-right shadow-2xs"
-										>
-											<span class="block text-xs font-semibold tracking-wide text-slate-500 uppercase">
-												Precio de Venta Sugerido
-											</span>
-											<p class="mt-0.5 text-3xl font-bold text-emerald-700 tabular-nums">
-												{formatearMoneda(precioSugerido)}
-											</p>
-											<p class="mt-1 text-xs font-medium text-slate-600 tabular-nums">
-												Ganancia Bruta: <strong class="text-slate-900">{formatearMoneda(margenBruto)}</strong>
-											</p>
-										</div>
-									</div>
+										Mise en place
+									</label>
+									<textarea
+										id="mise-en-place"
+										rows="4"
+										placeholder="Pesar ingredientes, precalentar horno..."
+										bind:value={nuevaReceta.miseEnPlace}
+										class="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
+									></textarea>
 								</div>
 
-								{#if recetaSeleccionada.instrucciones}
-									<div class="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4">
-										<h3 class="text-xs font-semibold tracking-wider text-slate-600 uppercase">
-											Instrucciones de preparación
+								<div>
+									<label
+										for="paso-a-paso"
+										class="block text-xs font-semibold tracking-wide text-slate-700 uppercase"
+									>
+										Paso a paso
+									</label>
+									<textarea
+										id="paso-a-paso"
+										rows="4"
+										placeholder="1. Mezclar secos...\n2. Amasar durante 10 min..."
+										bind:value={nuevaReceta.instrucciones}
+										class="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
+									></textarea>
+								</div>
+							</div>
+
+							<!-- Fotografía de la receta -->
+							<div>
+								<label
+									for="foto-receta"
+									class="block text-xs font-semibold tracking-wide text-slate-700 uppercase"
+								>
+									Fotografía del plato
+								</label>
+								<input
+									id="foto-receta"
+									type="file"
+									accept="image/*"
+									on:change={manejarCambioImagen}
+									class="mt-1.5 block w-full text-sm text-slate-600 file:mr-4 file:rounded-md file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-slate-800"
+								/>
+								{#if archivoImagen}
+									<p class="mt-1 text-xs text-slate-500">
+										Archivo seleccionado: <strong>{archivoImagen.name}</strong>
+									</p>
+								{/if}
+							</div>
+
+							<!-- Sección dinámica de ingredientes -->
+							<div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+								<div class="flex items-center justify-between border-b border-slate-200 pb-3">
+									<div>
+										<h3 class="text-xs font-semibold tracking-wider text-slate-700 uppercase">
+											Ingredientes de la Receta
 										</h3>
-										<p class="mt-1.5 text-sm leading-relaxed whitespace-pre-line text-slate-700">
-											{recetaSeleccionada.instrucciones}
+										<p class="text-xs text-slate-500">
+											Selecciona los insumos y define su cantidad bruta para el rendimiento base
 										</p>
+									</div>
+									<button
+										type="button"
+										on:click={agregarIngrediente}
+										class="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800"
+									>
+										+ Añadir ingrediente
+									</button>
+								</div>
+
+								{#if nuevaReceta.ingredientesSeleccionados.length === 0}
+									<p class="py-6 text-center text-xs text-slate-500">
+										Aún no has agregado ingredientes. Haz clic en "+ Añadir ingrediente".
+									</p>
+								{:else}
+									<div class="mt-3 space-y-3">
+										{#each nuevaReceta.ingredientesSeleccionados as item, idx (idx)}
+											<div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+												<div class="flex-1">
+													<select
+														bind:value={item.id_ingrediente}
+														on:change={(e) => manejarCambioSelectIngrediente(e, idx)}
+														class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
+													>
+														{#each db.ingredientes as ing (ing.id_ingrediente ?? ing.id)}
+															<option value={String(ing.id_ingrediente ?? ing.id)}>
+																{ing.nombre} ({ing.unidad_medida}) - {ing.costo_unitario}
+															</option>
+														{/each}
+														<option value="NUEVO" class="font-semibold text-slate-900">
+															➕ Agregar nuevo ingrediente...
+														</option>
+													</select>
+												</div>
+
+												<div class="flex items-center gap-2 sm:w-48">
+													<input
+														type="number"
+														min="0"
+														step="0.001"
+														placeholder="Cantidad bruta"
+														bind:value={item.cantidad_bruta}
+														class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-right text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
+													/>
+													<button
+														type="button"
+														on:click={() => eliminarIngrediente(idx)}
+														title="Eliminar ingrediente"
+														class="rounded-md border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+													>
+														✕
+													</button>
+												</div>
+											</div>
+										{/each}
 									</div>
 								{/if}
 							</div>
+
+							<!-- Botones de acción del formulario -->
+							<div class="flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
+								<button
+									type="button"
+									on:click={() => {
+										modoCreacion = false;
+										recetaSeleccionada = null;
+									}}
+									class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+								>
+									Cancelar
+								</button>
+								<button
+									type="submit"
+									disabled={guardando}
+									class="rounded-md bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+								>
+									{guardando ? 'Guardando receta...' : 'Guardar Receta'}
+								</button>
+							</div>
 						</div>
-					{:else}
-						<div
-							class="flex h-64 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500"
+					</form>
+				</div>
+			{:else if recetaSeleccionada === null}
+				<!-- Vista de Galería (Cuando recetaSeleccionada es null) -->
+				<div class="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+					<div>
+						<h2 class="text-2xl font-bold tracking-tight text-slate-900">Biblioteca de Recetas</h2>
+						<p class="mt-1 text-sm text-slate-500">
+							Selecciona una receta para consultar su ficha técnica, escalar porciones y calcular su
+							rentabilidad
+						</p>
+					</div>
+					<button
+						type="button"
+						on:click={activarModoCreacion}
+						class="self-start rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-slate-800 sm:self-auto"
+					>
+						+ Nueva Receta
+					</button>
+				</div>
+
+				{#if db.recetas.length === 0}
+					<div
+						class="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center"
+					>
+						<p class="text-sm font-medium text-slate-600">
+							No se encontraron recetas registradas en la biblioteca.
+						</p>
+						<button
+							type="button"
+							on:click={activarModoCreacion}
+							class="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
 						>
-							Selecciona una receta de la columna izquierda o haz clic en "+ Nueva Receta".
+							+ Crear primera receta
+						</button>
+					</div>
+				{:else}
+					<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+						{#each db.recetas as receta (receta.id_receta ?? obtenerNombreReceta(receta))}
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div
+								on:click={() => seleccionarReceta(receta)}
+								class="flex cursor-pointer flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition-shadow hover:shadow-lg"
+							>
+								{#if receta.url_imagen && String(receta.url_imagen).trim() !== ''}
+									<img
+										src={String(receta.url_imagen)}
+										alt={obtenerNombreReceta(receta)}
+										class="h-48 w-full object-cover"
+									/>
+								{:else}
+									<div
+										class="flex h-48 w-full flex-col items-center justify-center bg-slate-200/70 text-slate-400"
+									>
+										<span class="text-3xl" aria-hidden="true">🍽️</span>
+										<span class="mt-2 text-xs font-medium tracking-wide uppercase">
+											Sin imagen
+										</span>
+									</div>
+								{/if}
+
+								<div class="flex flex-1 flex-col justify-between p-4">
+									<div>
+										<div class="mb-2 flex items-center justify-between gap-2">
+											{#if receta.categoria}
+												<span
+													class="inline-block rounded-md bg-slate-900/10 px-2.5 py-0.5 text-xs font-semibold text-slate-800"
+												>
+													{receta.categoria}
+												</span>
+											{:else}
+												<span
+													class="inline-block rounded-md bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500"
+												>
+													General
+												</span>
+											{/if}
+
+											{#if receta.id_receta}
+												<span class="text-[11px] font-medium text-slate-400">
+													{receta.id_receta}
+												</span>
+											{/if}
+										</div>
+
+										<h3 class="line-clamp-2 text-base font-bold text-slate-900">
+											{obtenerNombreReceta(receta)}
+										</h3>
+									</div>
+
+									<div
+										class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500"
+									>
+										<span>
+											⏱ {receta.tiempo_preparacion || 'Tiempo no esp.'}
+										</span>
+										<span class="font-medium text-slate-600">
+											Base: {obtenerRendimientoBase(receta)}
+											{obtenerRendimientoBase(receta) === 1 ? 'porción' : 'porciones'}
+										</span>
+									</div>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			{:else}
+				<!-- Vista de Detalle (Cuando recetaSeleccionada NO es null) -->
+				<div class="mx-auto max-w-4xl">
+					<div class="mb-5">
+						<button
+							type="button"
+							on:click={() => (recetaSeleccionada = null)}
+							class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-slate-800"
+						>
+							⬅ Volver a la Biblioteca
+						</button>
+					</div>
+
+					<div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+						{#if recetaSeleccionada.url_imagen && String(recetaSeleccionada.url_imagen).trim() !== ''}
+							<img
+								src={String(recetaSeleccionada.url_imagen)}
+								alt={obtenerNombreReceta(recetaSeleccionada)}
+								class="h-64 w-full object-cover"
+							/>
+						{/if}
+
+						<!-- Cabecera del panel y control de porciones -->
+						<div
+							class="flex flex-col justify-between gap-4 border-b border-slate-200 bg-slate-50 px-6 py-5 sm:flex-row sm:items-center"
+						>
+							<div>
+								<div class="flex flex-wrap items-center gap-2">
+									<span class="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+										Ficha Técnica · {recetaSeleccionada.id_receta}
+									</span>
+									{#if recetaSeleccionada.categoria}
+										<span
+											class="rounded bg-slate-900 px-2 py-0.5 text-xs font-medium text-white"
+										>
+											{recetaSeleccionada.categoria}
+										</span>
+									{/if}
+									{#if recetaSeleccionada.tiempo_preparacion}
+										<span
+											class="rounded bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700"
+										>
+											⏱ {recetaSeleccionada.tiempo_preparacion}
+										</span>
+									{/if}
+								</div>
+								<h2 class="mt-1 text-2xl font-bold text-slate-900">
+									{obtenerNombreReceta(recetaSeleccionada)}
+								</h2>
+								<p class="mt-1 text-xs text-slate-500">
+									Rendimiento base: <strong>{rendimiento_base}</strong>
+									{rendimiento_base === 1 ? 'porción' : 'porciones'} · Factor multiplicador:
+									<strong>{formatearCantidad(factorMultiplicador)}x</strong>
+								</p>
+							</div>
+
+							<div class="flex items-center gap-3 self-start sm:self-auto">
+								<label
+									for="input-porciones"
+									class="text-sm font-medium whitespace-nowrap text-slate-700"
+								>
+									Porciones deseadas:
+								</label>
+								<input
+									id="input-porciones"
+									type="number"
+									min="1"
+									step="1"
+									bind:value={porcionesDeseadas}
+									class="w-24 rounded-md border border-slate-300 bg-white px-3 py-2 text-right text-sm font-semibold text-slate-900 shadow-2xs transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
+								/>
+							</div>
 						</div>
-					{/if}
-				</section>
-			</div>
+
+						<!-- Tabla de ingredientes, cantidades y costos -->
+						<div class="overflow-x-auto p-6">
+							<table class="w-full border-collapse text-left text-sm">
+								<thead>
+									<tr class="border-b border-slate-200 bg-slate-50 text-xs uppercase">
+										<th class="px-4 py-3 font-semibold text-slate-600">Ingrediente</th>
+										<th class="px-4 py-3 text-right font-semibold text-slate-600">Cantidad</th>
+										<th class="px-4 py-3 text-right font-semibold text-slate-600">Costo</th>
+									</tr>
+								</thead>
+								<tbody class="divide-y divide-slate-200">
+									{#if detalleIngredientes.length === 0}
+										<tr>
+											<td colspan="3" class="px-4 py-8 text-center text-slate-500">
+												No hay ingredientes asociados a esta receta en la tabla de fichas.
+											</td>
+										</tr>
+									{:else}
+										{#each detalleIngredientes as item, index (index)}
+											<tr class="transition-colors hover:bg-slate-50/80">
+												<td class="px-4 py-3.5 font-medium text-slate-800">
+													{item.nombre}
+												</td>
+												<td class="px-4 py-3.5 text-right text-slate-700 tabular-nums">
+													{formatearCantidad(item.cantidadNecesaria)}
+													{#if item.unidad}
+														<span class="ml-1 text-xs text-slate-500">{item.unidad}</span>
+													{/if}
+												</td>
+												<td class="px-4 py-3.5 text-right font-medium text-slate-800 tabular-nums">
+													{formatearMoneda(item.costo)}
+												</td>
+											</tr>
+										{/each}
+									{/if}
+								</tbody>
+								<tfoot>
+									<tr class="border-t-2 border-slate-300 bg-slate-900 text-white">
+										<td colspan="2" class="px-4 py-3.5 text-right font-semibold uppercase">
+											Total
+										</td>
+										<td class="px-4 py-3.5 text-right text-base font-bold tabular-nums">
+											{formatearMoneda(costoTotalReceta)}
+										</td>
+									</tr>
+								</tfoot>
+							</table>
+
+							<!-- Calculadora de Precio de Venta (Food Cost) -->
+							<div class="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
+								<h3 class="text-xs font-semibold tracking-wider text-slate-700 uppercase">
+									Fijación de Precio y Rentabilidad
+								</h3>
+
+								<div
+									class="mt-3 flex flex-col justify-between gap-4 sm:flex-row sm:items-center"
+								>
+									<!-- Input Target Food Cost -->
+									<div class="flex items-center gap-3">
+										<label for="input-food-cost" class="text-sm font-medium text-slate-700">
+											Target Food Cost
+										</label>
+										<div class="relative flex items-center">
+											<input
+												id="input-food-cost"
+												type="number"
+												min="1"
+												max="100"
+												step="1"
+												bind:value={porcentajeFoodCost}
+												class="w-24 rounded-md border border-slate-300 bg-white py-2 pr-7 pl-3 text-right text-sm font-semibold text-slate-900 shadow-2xs transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
+											/>
+											<span
+												class="pointer-events-none absolute right-2.5 text-sm font-semibold text-slate-500"
+											>
+												%
+											</span>
+										</div>
+									</div>
+
+									<!-- Bloque destacado Precio de Venta Sugerido y Ganancia Bruta -->
+									<div
+										class="rounded-md border border-slate-200 bg-white px-5 py-3 text-right shadow-2xs"
+									>
+										<span class="block text-xs font-semibold tracking-wide text-slate-500 uppercase">
+											Precio de Venta Sugerido
+										</span>
+										<p class="mt-0.5 text-3xl font-bold text-emerald-700 tabular-nums">
+											{formatearMoneda(precioSugerido)}
+										</p>
+										<p class="mt-1 text-xs font-medium text-slate-600 tabular-nums">
+											Ganancia Bruta: <strong class="text-slate-900">{formatearMoneda(margenBruto)}</strong>
+										</p>
+									</div>
+								</div>
+							</div>
+
+							{#if recetaSeleccionada.instrucciones}
+								<div class="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4">
+									<h3 class="text-xs font-semibold tracking-wider text-slate-600 uppercase">
+										Instrucciones de preparación
+									</h3>
+									<p class="mt-1.5 text-sm leading-relaxed whitespace-pre-line text-slate-700">
+										{recetaSeleccionada.instrucciones}
+									</p>
+								</div>
+							{/if}
+						</div>
+					</div>
+				</div>
+			{/if}
 		</main>
 	{/if}
 

@@ -295,7 +295,16 @@
 				})
 		: [];
 
-	$: costoTotal = detalleIngredientes.reduce((acumulado, item) => acumulado + item.costo, 0);
+	$: costoTotalReceta = detalleIngredientes.reduce((acumulado, item) => acumulado + item.costo, 0);
+	$: costoTotal = costoTotalReceta;
+
+	let porcentajeFoodCost = 30;
+
+	$: precioSugerido =
+		costoTotalReceta > 0 && porcentajeFoodCost > 0
+			? costoTotalReceta / (porcentajeFoodCost / 100)
+			: 0;
+	$: margenBruto = precioSugerido - costoTotalReceta;
 
 	function formatearCantidad(valor: number): string {
 		return new Intl.NumberFormat('es-CL', {
@@ -706,11 +715,63 @@
 												Total
 											</td>
 											<td class="px-4 py-3.5 text-right text-base font-bold tabular-nums">
-												{formatearMoneda(costoTotal)}
+												{formatearMoneda(costoTotalReceta)}
 											</td>
 										</tr>
 									</tfoot>
 								</table>
+
+								<!-- Calculadora de Precio de Venta (Food Cost) -->
+								<div class="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
+									<h3 class="text-xs font-semibold tracking-wider text-slate-700 uppercase">
+										Fijación de Precio y Rentabilidad
+									</h3>
+
+									<div
+										class="mt-3 flex flex-col justify-between gap-4 sm:flex-row sm:items-center"
+									>
+										<!-- Input Target Food Cost -->
+										<div class="flex items-center gap-3">
+											<label
+												for="input-food-cost"
+												class="text-sm font-medium text-slate-700"
+											>
+												Target Food Cost
+											</label>
+											<div class="relative flex items-center">
+												<input
+													id="input-food-cost"
+													type="number"
+													min="1"
+													max="100"
+													step="1"
+													bind:value={porcentajeFoodCost}
+													class="w-24 rounded-md border border-slate-300 bg-white py-2 pr-7 pl-3 text-right text-sm font-semibold text-slate-900 shadow-2xs transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
+												/>
+												<span
+													class="pointer-events-none absolute right-2.5 text-sm font-semibold text-slate-500"
+												>
+													%
+												</span>
+											</div>
+										</div>
+
+										<!-- Bloque destacado Precio de Venta Sugerido y Ganancia Bruta -->
+										<div
+											class="rounded-md border border-slate-200 bg-white px-5 py-3 text-right shadow-2xs"
+										>
+											<span class="block text-xs font-semibold tracking-wide text-slate-500 uppercase">
+												Precio de Venta Sugerido
+											</span>
+											<p class="mt-0.5 text-3xl font-bold text-emerald-700 tabular-nums">
+												{formatearMoneda(precioSugerido)}
+											</p>
+											<p class="mt-1 text-xs font-medium text-slate-600 tabular-nums">
+												Ganancia Bruta: <strong class="text-slate-900">{formatearMoneda(margenBruto)}</strong>
+											</p>
+										</div>
+									</div>
+								</div>
 
 								{#if recetaSeleccionada.instrucciones}
 									<div class="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4">

@@ -421,9 +421,9 @@
 	}
 </script>
 
-<div class="min-h-screen bg-slate-100 text-slate-800">
+<div class="min-h-screen bg-slate-100 text-slate-800 print:bg-white print:text-black">
 	<!-- Encabezado corporativo -->
-	<header class="border-b border-slate-200 bg-slate-900 text-white shadow-sm">
+	<header class="border-b border-slate-200 bg-slate-900 text-white shadow-sm print:hidden">
 		<div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
 			<button
 				type="button"
@@ -462,7 +462,7 @@
 			<p class="mt-4 text-sm font-medium text-slate-600">Cargando datos del recetario...</p>
 		</div>
 	{:else}
-		<main class="mx-auto max-w-7xl p-6">
+		<main class="mx-auto max-w-7xl p-6 print:m-0 print:w-full print:max-w-none print:p-0">
 			{#if modoCreacion}
 				<!-- Vista de Formulario de Creación -->
 				<div class="mx-auto max-w-4xl">
@@ -801,64 +801,76 @@
 				{/if}
 			{:else}
 				<!-- Vista de Detalle (Cuando recetaSeleccionada NO es null) -->
-				<div class="mx-auto max-w-4xl">
-					<div class="mb-5">
+				<div class="mx-auto max-w-4xl print:m-0 print:w-full print:max-w-none print:p-0">
+					<div class="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
 						<button
 							type="button"
 							on:click={() => (recetaSeleccionada = null)}
-							class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-slate-800"
+							class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-slate-800 print:hidden"
 						>
 							⬅ Volver a la Biblioteca
 						</button>
+
+						<button
+							type="button"
+							on:click={() => window.print()}
+							class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-xs transition hover:bg-slate-50 print:hidden"
+						>
+							🖨️ Exportar / Imprimir
+						</button>
 					</div>
 
-					<div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+					<div
+						class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm print:m-0 print:w-full print:border-none print:p-0 print:shadow-none"
+					>
 						{#if recetaSeleccionada.url_imagen && String(recetaSeleccionada.url_imagen).trim() !== ''}
 							<img
 								src={String(recetaSeleccionada.url_imagen)}
 								alt={obtenerNombreReceta(recetaSeleccionada)}
-								class="h-64 w-full object-cover"
+								class="h-64 w-full object-cover print:h-48"
 							/>
 						{/if}
 
 						<!-- Cabecera del panel y control de porciones -->
 						<div
-							class="flex flex-col justify-between gap-4 border-b border-slate-200 bg-slate-50 px-6 py-5 sm:flex-row sm:items-center"
+							class="flex flex-col justify-between gap-4 border-b border-slate-200 bg-slate-50 px-6 py-5 sm:flex-row sm:items-center print:bg-white print:px-0"
 						>
-							<div>
+							<div class="print:text-black">
 								<div class="flex flex-wrap items-center gap-2">
-									<span class="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+									<span
+										class="text-xs font-semibold tracking-wider text-slate-500 uppercase print:text-black"
+									>
 										Ficha Técnica · {recetaSeleccionada.id_receta}
 									</span>
 									{#if recetaSeleccionada.categoria}
 										<span
-											class="rounded bg-slate-900 px-2 py-0.5 text-xs font-medium text-white"
+											class="rounded bg-slate-900 px-2 py-0.5 text-xs font-medium text-white print:border print:border-slate-400 print:bg-transparent print:text-black"
 										>
 											{recetaSeleccionada.categoria}
 										</span>
 									{/if}
 									{#if recetaSeleccionada.tiempo_preparacion}
 										<span
-											class="rounded bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700"
+											class="rounded bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700 print:text-black"
 										>
 											⏱ {recetaSeleccionada.tiempo_preparacion}
 										</span>
 									{/if}
 								</div>
-								<h2 class="mt-1 text-2xl font-bold text-slate-900">
+								<h2 class="mt-1 text-2xl font-bold text-slate-900 print:text-black">
 									{obtenerNombreReceta(recetaSeleccionada)}
 								</h2>
-								<p class="mt-1 text-xs text-slate-500">
+								<p class="mt-1 text-xs text-slate-500 print:text-black">
 									Rendimiento base: <strong>{rendimiento_base}</strong>
 									{rendimiento_base === 1 ? 'porción' : 'porciones'} · Factor multiplicador:
 									<strong>{formatearCantidad(factorMultiplicador)}x</strong>
 								</p>
 							</div>
 
-							<div class="flex items-center gap-3 self-start sm:self-auto">
+							<div class="flex items-center gap-3 self-start sm:self-auto print:text-black">
 								<label
 									for="input-porciones"
-									class="text-sm font-medium whitespace-nowrap text-slate-700"
+									class="text-sm font-medium whitespace-nowrap text-slate-700 print:text-black"
 								>
 									Porciones deseadas:
 								</label>
@@ -868,41 +880,51 @@
 									min="1"
 									step="1"
 									bind:value={porcionesDeseadas}
-									class="w-24 rounded-md border border-slate-300 bg-white px-3 py-2 text-right text-sm font-semibold text-slate-900 shadow-2xs transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
+									class="w-24 rounded-md border border-slate-300 bg-white px-3 py-2 text-right text-sm font-semibold text-slate-900 shadow-2xs transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none print:border-slate-400 print:text-black"
 								/>
 							</div>
 						</div>
 
 						<!-- Tabla de ingredientes, cantidades y costos -->
-						<div class="overflow-x-auto p-6">
-							<table class="w-full border-collapse text-left text-sm">
+						<div class="overflow-x-auto p-6 print:px-0">
+							<table class="w-full border-collapse text-left text-sm print:text-black">
 								<thead>
-									<tr class="border-b border-slate-200 bg-slate-50 text-xs uppercase">
-										<th class="px-4 py-3 font-semibold text-slate-600">Ingrediente</th>
-										<th class="px-4 py-3 text-right font-semibold text-slate-600">Cantidad</th>
-										<th class="px-4 py-3 text-right font-semibold text-slate-600">Costo</th>
+									<tr class="border-b border-slate-200 bg-slate-50 text-xs uppercase print:bg-white">
+										<th class="px-4 py-3 font-semibold text-slate-600 print:text-black">
+											Ingrediente
+										</th>
+										<th class="px-4 py-3 text-right font-semibold text-slate-600 print:text-black">
+											Cantidad
+										</th>
+										<th class="px-4 py-3 text-right font-semibold text-slate-600 print:text-black">
+											Costo
+										</th>
 									</tr>
 								</thead>
 								<tbody class="divide-y divide-slate-200">
 									{#if detalleIngredientes.length === 0}
 										<tr>
-											<td colspan="3" class="px-4 py-8 text-center text-slate-500">
+											<td colspan="3" class="px-4 py-8 text-center text-slate-500 print:text-black">
 												No hay ingredientes asociados a esta receta en la tabla de fichas.
 											</td>
 										</tr>
 									{:else}
 										{#each detalleIngredientes as item, index (index)}
 											<tr class="transition-colors hover:bg-slate-50/80">
-												<td class="px-4 py-3.5 font-medium text-slate-800">
+												<td class="px-4 py-3.5 font-medium text-slate-800 print:text-black">
 													{item.nombre}
 												</td>
-												<td class="px-4 py-3.5 text-right text-slate-700 tabular-nums">
+												<td class="px-4 py-3.5 text-right text-slate-700 tabular-nums print:text-black">
 													{formatearCantidad(item.cantidadNecesaria)}
 													{#if item.unidad}
-														<span class="ml-1 text-xs text-slate-500">{item.unidad}</span>
+														<span class="ml-1 text-xs text-slate-500 print:text-black">
+															{item.unidad}
+														</span>
 													{/if}
 												</td>
-												<td class="px-4 py-3.5 text-right font-medium text-slate-800 tabular-nums">
+												<td
+													class="px-4 py-3.5 text-right font-medium text-slate-800 tabular-nums print:text-black"
+												>
 													{formatearMoneda(item.costo)}
 												</td>
 											</tr>
@@ -910,7 +932,9 @@
 									{/if}
 								</tbody>
 								<tfoot>
-									<tr class="border-t-2 border-slate-300 bg-slate-900 text-white">
+									<tr
+										class="border-t-2 border-slate-300 bg-slate-900 text-white print:bg-slate-100 print:text-black"
+									>
 										<td colspan="2" class="px-4 py-3.5 text-right font-semibold uppercase">
 											Total
 										</td>
@@ -921,8 +945,8 @@
 								</tfoot>
 							</table>
 
-							<!-- Calculadora de Precio de Venta (Food Cost) -->
-							<div class="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
+							<!-- Calculadora de Precio de Venta (Food Cost) - Oculta en impresión -->
+							<div class="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 print:hidden">
 								<h3 class="text-xs font-semibold tracking-wider text-slate-700 uppercase">
 									Fijación de Precio y Rentabilidad
 								</h3>
@@ -970,12 +994,36 @@
 								</div>
 							</div>
 
+							<!-- Bloques de Mise en place e Instrucciones (Visibles en pantalla y en impresión) -->
+							{#if recetaSeleccionada.miseEnPlace || recetaSeleccionada.mise_en_place}
+								<div
+									class="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4 print:border-slate-300 print:bg-white print:text-black"
+								>
+									<h3
+										class="text-xs font-semibold tracking-wider text-slate-600 uppercase print:text-black"
+									>
+										Mise en place
+									</h3>
+									<p
+										class="mt-1.5 text-sm leading-relaxed whitespace-pre-line text-slate-700 print:text-black"
+									>
+										{recetaSeleccionada.miseEnPlace ?? recetaSeleccionada.mise_en_place}
+									</p>
+								</div>
+							{/if}
+
 							{#if recetaSeleccionada.instrucciones}
-								<div class="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4">
-									<h3 class="text-xs font-semibold tracking-wider text-slate-600 uppercase">
+								<div
+									class="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4 print:border-slate-300 print:bg-white print:text-black"
+								>
+									<h3
+										class="text-xs font-semibold tracking-wider text-slate-600 uppercase print:text-black"
+									>
 										Instrucciones de preparación
 									</h3>
-									<p class="mt-1.5 text-sm leading-relaxed whitespace-pre-line text-slate-700">
+									<p
+										class="mt-1.5 text-sm leading-relaxed whitespace-pre-line text-slate-700 print:text-black"
+									>
 										{recetaSeleccionada.instrucciones}
 									</p>
 								</div>

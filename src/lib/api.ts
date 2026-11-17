@@ -85,3 +85,25 @@ export async function saveNewReceta(
 		return false;
 	}
 }
+
+export async function saveNewIngrediente(ingredienteData: Record<string, unknown>) {
+	try {
+		const response = await fetch('/api/recetario', {
+			method: 'POST',
+			redirect: 'follow',
+			headers: {
+				'Content-Type': 'text/plain;charset=utf-8'
+			},
+			body: JSON.stringify({
+				action: 'saveIngrediente',
+				ingrediente: ingredienteData
+			})
+		});
+
+		const data = await response.json();
+		return data;
+	} catch (error) {
+		console.error('Error guardando nuevo ingrediente:', error);
+		return { success: false, error: 'Error al guardar el ingrediente' };
+	}
+}

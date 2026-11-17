@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { fetchRecetario, uploadImageToDrive, saveNewReceta } from '$lib/api';
+	import {
+		fetchRecetario,
+		uploadImageToDrive,
+		saveNewReceta,
+		saveNewIngrediente
+	} from '$lib/api';
 
 	interface Ingrediente {
 		id_ingrediente?: string | number;
@@ -67,6 +72,104 @@
 	let modoCreacion: boolean = false;
 	let archivoImagen: File | null = null;
 	let guardando: boolean = false;
+
+	// Estado para el modal de Nuevo Ingrediente
+	let mostrarModalIngrediente: boolean = false;
+	let indiceFilaActiva: number | null = null;
+	let guardandoIngrediente: boolean = false;
+	let nuevoIngredienteForm = {
+		nombre: '',
+		unidad_medida: '',
+		costo_unitario: '',
+		porcentaje_merma: '',
+		alergenos: ''
+	};
+
+	function resetearNuevoIngredienteForm() {
+		nuevoIngredienteForm = {
+			nombre: '',
+			unidad_medida: '',
+			costo_unitario: '',
+			porcentaje_merma: '',
+			alergenos: ''
+		};
+	}
+
+	function manejarCambioSelectIngrediente(event: Event, index: number) {
+		const target = event.currentTarget as HTMLSelectElement;
+		if (target.value === 'NUEVO') {
+			indiceFilaActiva = index;
+			resetearNuevoIngredienteForm();
+			mostrarModalIngrediente = true;
+		}
+	}
+
+	function cancelarModalIngrediente() {
+		if (
+			indiceFilaActiva !== null &&
+			nuevaReceta.ingredientesSeleccionados[indiceFilaActiva]?.id_ingrediente === 'NUEVO'
+		) {
+			const primerId = String(db.ingredientes[0]?.id_ingrediente ?? db.ingredientes[0]?.id ?? '');
+			nuevaReceta.ingredientesSeleccionados[indiceFilaActiva].id_ingrediente = primerId;
+			nuevaReceta.ingredientesSeleccionados = [...nuevaReceta.ingredientesSeleccionados];
+		}
+		mostrarModalIngrediente = false;
+		indiceFilaActiva = null;
+	}
+
+	async function submitNuevoIngrediente() {
+		if (!nuevoIngredienteForm.nombre.trim()) {
+			alert('Por favor ingresa el nombre del ingrediente.');
+			return;
+		}
+
+		guardandoIngrediente = true;
+		try {
+			const respuesta = await saveNewIngrediente({
+				nombre: nuevoIngredienteForm.nombre.trim(),
+				unidad_medida: nuevoIngredienteForm.unidad_medida.trim() || 'kg',
+				costo_unitario: nuevoIngredienteForm.costo_unitario,
+				porcentaje_merma: nuevoIngredienteForm.porcentaje_merma.trim() || '0%',
+				alergenos: nuevoIngredienteForm.alergenos.trim() || 'Ninguno'
+			});
+
+			if (respuesta && respuesta.success) {
+				const ingredienteCreado: Ingrediente = respuesta.data ??
+					respuesta.ingrediente ?? {
+						...nuevoIngredienteForm,
+						id_ingrediente: respuesta.id_ingrediente ?? respuesta.id ?? `ING-${Date.now()}`
+					};
+
+				db = {
+					...db,
+					ingredientes: [...db.ingredientes, ingredienteCreado]
+				};
+
+				const nuevoId = String(
+					ingredienteCreado.id_ingrediente ?? ingredienteCreado.id ?? ''
+				);
+
+				if (
+					indiceFilaActiva !== null &&
+					nuevaReceta.ingredientesSeleccionados[indiceFilaActiva]
+				) {
+					nuevaReceta.ingredientesSeleccionados[indiceFilaActiva].id_ingrediente = nuevoId;
+					nuevaReceta.ingredientesSeleccionados = [...nuevaReceta.ingredientesSeleccionados];
+				}
+
+				mostrarModalIngrediente = false;
+				indiceFilaActiva = null;
+				resetearNuevoIngredienteForm();
+			} else {
+				alert(respuesta?.error || 'No se pudo guardar el nuevo ingrediente.');
+			}
+		} catch (error) {
+			console.error('Error al guardar ingrediente:', error);
+			alert('Ocurrió un error al guardar el ingrediente.');
+		} finally {
+			guardandoIngrediente = false;
+		}
+	}
 
 	let nuevaReceta: NuevaRecetaForm = {
 		nombre: '',
@@ -568,6 +671,7 @@
 													<div class="flex-1">
 														<select
 															bind:value={item.id_ingrediente}
+															on:change={(e) => manejarCambioSelectIngrediente(e, idx)}
 															class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
 														>
 															{#each db.ingredientes as ing (ing.id_ingrediente ?? ing.id)}
@@ -575,6 +679,9 @@
 																	{ing.nombre} ({ing.unidad_medida}) - {ing.costo_unitario}
 																</option>
 															{/each}
+															<option value="NUEVO" class="font-semibold text-slate-900">
+																➕ Agregar nuevo ingrediente...
+															</option>
 														</select>
 													</div>
 
@@ -795,5 +902,128 @@
 				</section>
 			</div>
 		</main>
+	{/if}
+
+	<!-- Modal para Crear Nuevo Ingrediente -->
+	{#if mostrarModalIngrediente}
+		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+			<div class="w-full max-w-md overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
+				<div class="border-b border-slate-200 bg-slate-900 px-6 py-4 text-white">
+					<span class="text-xs font-semibold tracking-wider text-slate-300 uppercase">
+						Catálogo de Insumos
+					</span>
+					<h3 class="mt-0.5 text-lg font-bold">Nuevo Ingrediente</h3>
+				</div>
+
+				<form on:submit|preventDefault={submitNuevoIngrediente} class="space-y-4 p-6">
+					<div>
+						<label
+							for="ing-nombre"
+							class="block text-xs font-semibold tracking-wide text-slate-700 uppercase"
+						>
+							Nombre del Ingrediente
+						</label>
+						<input
+							id="ing-nombre"
+							type="text"
+							required
+							placeholder="Ej. Queso Mozzarella"
+							bind:value={nuevoIngredienteForm.nombre}
+							class="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
+						/>
+					</div>
+
+					<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+						<div>
+							<label
+								for="ing-unidad"
+								class="block text-xs font-semibold tracking-wide text-slate-700 uppercase"
+							>
+								Unidad de Medida
+							</label>
+							<input
+								id="ing-unidad"
+								type="text"
+								required
+								placeholder="Ej. kg, litro, unidad"
+								bind:value={nuevoIngredienteForm.unidad_medida}
+								class="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
+							/>
+						</div>
+
+						<div>
+							<label
+								for="ing-costo"
+								class="block text-xs font-semibold tracking-wide text-slate-700 uppercase"
+							>
+								Costo Unitario (CLP)
+							</label>
+							<input
+								id="ing-costo"
+								type="number"
+								min="0"
+								step="any"
+								required
+								placeholder="Ej. 6500"
+								bind:value={nuevoIngredienteForm.costo_unitario}
+								class="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
+							/>
+						</div>
+					</div>
+
+					<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+						<div>
+							<label
+								for="ing-merma"
+								class="block text-xs font-semibold tracking-wide text-slate-700 uppercase"
+							>
+								Porcentaje de Merma
+							</label>
+							<input
+								id="ing-merma"
+								type="text"
+								placeholder="Ej. 0%, 5%"
+								bind:value={nuevoIngredienteForm.porcentaje_merma}
+								class="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
+							/>
+						</div>
+
+						<div>
+							<label
+								for="ing-alergenos"
+								class="block text-xs font-semibold tracking-wide text-slate-700 uppercase"
+							>
+								Alérgenos
+							</label>
+							<input
+								id="ing-alergenos"
+								type="text"
+								placeholder="Ej. Lácteos, Gluten, Ninguno"
+								bind:value={nuevoIngredienteForm.alergenos}
+								class="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-2xs focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
+							/>
+						</div>
+					</div>
+
+					<div class="flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
+						<button
+							type="button"
+							disabled={guardandoIngrediente}
+							on:click={cancelarModalIngrediente}
+							class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+						>
+							Cancelar
+						</button>
+						<button
+							type="submit"
+							disabled={guardandoIngrediente}
+							class="rounded-md bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+						>
+							{guardandoIngrediente ? 'Guardando...' : 'Guardar'}
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
 	{/if}
 </div>
